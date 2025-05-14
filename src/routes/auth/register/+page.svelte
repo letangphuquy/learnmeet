@@ -1,11 +1,15 @@
 <!-- Registration page for LearnMeet -->
-<script lang="ts">
-  import { goto } from '$app/navigation';
+<script lang="ts">  import { goto } from '$app/navigation';
   import { authStore, UserRole } from '$lib/stores/authStore';
   import Button from '$lib/components/ui/Button.svelte';
   import { getAuthErrorMessage } from '$lib/firebase/auth-utils';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { 
+    PUBLIC_FIREBASE_API_KEY, 
+    PUBLIC_FIREBASE_AUTH_DOMAIN, 
+    PUBLIC_FIREBASE_PROJECT_ID 
+  } from '$env/static/public';
   
   let email = '';
   let password = '';
@@ -50,10 +54,8 @@
       try {
       if (browser && import.meta.env.DEV) {
         console.log('Attempting to register with:', { email, displayName, role });
-        
-        // Debug Firebase configuration in the browser console
+          // Debug Firebase configuration in the browser console
         console.log('Firebase config check (from registration page)');
-        import { PUBLIC_FIREBASE_API_KEY, PUBLIC_FIREBASE_AUTH_DOMAIN, PUBLIC_FIREBASE_PROJECT_ID } from '$env/static/public';
         console.log('Key config values available:', {
           apiKey: PUBLIC_FIREBASE_API_KEY ? '✓ Present' : '✗ Missing',
           authDomain: PUBLIC_FIREBASE_AUTH_DOMAIN ? '✓ Present' : '✗ Missing',

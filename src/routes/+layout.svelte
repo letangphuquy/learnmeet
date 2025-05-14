@@ -6,14 +6,14 @@
   import { page } from '$app/stores';
   import { auth } from '$lib/firebase/config';
   import { authStore } from '$lib/stores/authStore';
-  
-  // Public routes that don't require authentication
+    // Public routes that don't require authentication
   const publicRoutes = [
     '/',
     '/auth/signin',
     '/auth/register',
     '/auth/forgot-password',
-    '/auth/verify-email'
+    '/auth/verify-email',
+    '/debug/firebase' // Adding the debug page as public for easy access during troubleshooting
   ];
   
   // Check if the current path is a public route
