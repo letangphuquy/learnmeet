@@ -1,9 +1,12 @@
 <script>
   import Button from '$lib/components/ui/Button.svelte';
+  import Header from '$lib/components/Header.svelte';
 </script>
 
-<main class="min-h-screen bg-gradient-to-b from-primary-100 to-white">
-  <div class="container mx-auto px-4 py-12 md:py-24">
+<div class="min-h-screen bg-gradient-to-b from-primary-100 to-white">
+  <Header />
+  
+  <main class="container mx-auto px-4 py-12 md:py-24">
     <div class="text-center mb-12">
       <h1 class="text-4xl md:text-5xl font-bold text-primary-800 mb-4">LearnMeet</h1>
       <p class="text-xl text-gray-700 max-w-2xl mx-auto">
@@ -18,8 +21,12 @@
           Start or Join a Meeting
         </h2>
         <div class="space-y-4">
-          <Button fullWidth={true} variant="primary">Create New Meeting</Button>
-          <Button fullWidth={true} variant="secondary">Join Meeting</Button>
+          <a href="/dashboard" class="block">
+            <Button fullWidth={true} variant="primary">Create New Meeting</Button>
+          </a>
+          <a href="/dashboard" class="block">
+            <Button fullWidth={true} variant="secondary">Join Meeting</Button>
+          </a>
         </div>
       </div>
       
@@ -28,8 +35,12 @@
           Sign In to Your Account
         </h2>
         <div class="space-y-4">
-          <Button fullWidth={true} variant="primary">Sign In</Button>
-          <Button fullWidth={true} variant="ghost">Create Account</Button>
+          <a href="/auth/signin" class="block">
+            <Button fullWidth={true} variant="primary">Sign In</Button>
+          </a>
+          <a href="/auth/register" class="block">
+            <Button fullWidth={true} variant="ghost">Create Account</Button>
+          </a>
         </div>
       </div>
     </div>
@@ -54,5 +65,5 @@
         </div>
       </div>
     </div>
-  </div>
-</main>
+  </main>
+</div>

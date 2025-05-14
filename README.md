@@ -35,6 +35,28 @@ Detailed documentation is available in the `/docs` directory:
 - Node.js 18.x or later
 - npm 8.x or later
 - Modern web browser (Chrome, Firefox, Safari, or Edge)
+- Firebase account for authentication services
+
+### Firebase Setup
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project (or use an existing one)
+3. Add a web application to your Firebase project
+4. Enable Authentication in Firebase console:
+   - Go to "Authentication" → "Sign-in method"
+   - Enable "Email/Password" provider
+5. Copy your Firebase config from Project settings
+6. Create a `.env` file in the root directory based on the `.env.example` template
+7. Fill in the Firebase configuration values in the `.env` file:
+   ```
+   PUBLIC_FIREBASE_API_KEY=your-api-key
+   PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+   PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+   PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+   PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+   PUBLIC_FIREBASE_APP_ID=your-app-id
+   PUBLIC_FIREBASE_MEASUREMENT_ID=your-measurement-id
+   ```
 
 ### Installation
 
@@ -45,6 +67,10 @@ cd learnmeet
 
 # Install dependencies
 npm install
+
+# Create .env file from template
+cp .env.example .env
+# (edit the .env file with your Firebase configuration)
 
 # Start the development server
 npm run dev
