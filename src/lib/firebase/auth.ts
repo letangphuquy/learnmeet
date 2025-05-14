@@ -49,18 +49,41 @@ const initialState: AuthState = {
 // Create the auth store
 function createAuthStore() {
   const { subscribe, set, update } = writable<AuthState>(initialState);
-
+  // Store user roles in memory until we implement proper role storage
+  const userRoles: Record<string, UserRole> = {};
+  
   // Transform Firebase User to our User model
-  function transformUser(firebaseUser: FirebaseUser): User {
-    // Get user role from custom claims or default to Student
-    // For now, determine role by email domain as a simple example
-    // In a real app, this would come from custom claims or a database
-    const isTeacher = firebaseUser.email?.includes('teacher') || false;
-    const isAdmin = firebaseUser.email?.includes('admin') || false;
+  function transformUser(firebaseUser: FirebaseUser, specifiedRole?: UserRole): User {
+    // Get user role from various sources with precedence:
+    // 1. Specified role parameter (highest priority)
+    // 2. Previously stored role for this user
+    // 3. Email-based determination (lowest priority)
     
-    let role = UserRole.Student;
-    if (isTeacher) role = UserRole.Teacher;
-    if (isAdmin) role = UserRole.Admin;
+    let role: UserRole;
+    
+    if (specifiedRole) {
+      // If a role is explicitly specified, use it and store it
+      role = specifiedRole;
+      if (firebaseUser.uid) {
+        userRoles[firebaseUser.uid] = role;
+      }
+    } else if (firebaseUser.uid && userRoles[firebaseUser.uid]) {
+      // If we've previously stored a role for this user, use it
+      role = userRoles[firebaseUser.uid];
+    } else {
+      // Fallback to email-based determination
+      const isTeacher = firebaseUser.email?.includes('teacher') || false;
+      const isAdmin = firebaseUser.email?.includes('admin') || false;
+      
+      role = UserRole.Student; // Default role
+      if (isTeacher) role = UserRole.Teacher;
+      if (isAdmin) role = UserRole.Admin;
+      
+      // Store this determined role
+      if (firebaseUser.uid) {
+        userRoles[firebaseUser.uid] = role;
+      }
+    }
 
     return {
       uid: firebaseUser.uid,
@@ -178,9 +201,12 @@ function createAuthStore() {
         
         // Send email verification
         await sendEmailVerification(userCredential.user);
+          // Transform and return user, passing the specified role
+        const user = transformUser(userCredential.user, role);
         
-        // Transform and return user
-        const user = transformUser(userCredential.user);
+        if (browser && import.meta.env.DEV) {
+          console.log(`User registered with role: ${role}`);
+        }
         
         return user;
       } catch (error: any) {
