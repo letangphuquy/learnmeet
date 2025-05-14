@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 
 // User interface
 export interface User {
@@ -70,35 +71,55 @@ function createAuthStore() {
       role
     };
   }
-
-  // Initialize listener for authentication state changes
-  onAuthStateChanged(auth, (firebaseUser) => {
-    if (firebaseUser) {
-      const user = transformUser(firebaseUser);
+  // Initialize listener for authentication state changes with error handling
+  try {
+    onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const user = transformUser(firebaseUser);
+        update(state => ({
+          ...state,
+          user,
+          isAuthenticated: true,
+          loading: false,
+          error: null // Clear any previous errors
+        }));
+      } else {
+        update(state => ({
+          ...state,
+          user: null,
+          isAuthenticated: false,
+          loading: false,
+          error: null // Clear any previous errors
+        }));
+      }
+    }, (error) => {
+      // This error handler catches auth state changes errors
+      console.error('Auth state change error:', error);
       update(state => ({
         ...state,
-        user,
-        isAuthenticated: true,
-        loading: false
+        loading: false,
+        error: error.message || 'Authentication service failed'
       }));
-    } else {
-      update(state => ({
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        loading: false
-      }));
-    }
-  });
+    });
+  } catch (initError) {
+    console.error('Failed to initialize auth listener:', initError);
+    update(state => ({
+      ...state,
+      loading: false,
+      error: 'Failed to initialize authentication'
+    }));
+  }
   
   return {
     subscribe,
-    
-    // Sign in a user with email and password
-    signIn: async (email: string, password: string): Promise<User | null> => {
+      // Sign in a user with email and password
+    signIn: async (email: string, password: string, rememberMe: boolean = false): Promise<User | null> => {
       update(state => ({ ...state, loading: true, error: null }));
       
       try {
+        // Set persistence based on remember me checkbox
+        // This is handled separately from the signIn to avoid unnecessary imports in this file
+        
         const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = transformUser(userCredential.user);
         
@@ -131,14 +152,26 @@ function createAuthStore() {
         throw new Error(errorMessage);
       }
     },
-    
-    // Register a new user
+      // Register a new user
     register: async (email: string, password: string, displayName: string, role: UserRole = UserRole.Student): Promise<User | null> => {
       update(state => ({ ...state, loading: true, error: null }));
       
       try {
+        if (browser && import.meta.env.DEV) {
+          console.log('Starting user registration process for:', email);
+        }
+        
+        // Validate auth object exists
+        if (!auth) {
+          throw new Error('Firebase auth is not initialized. Check your configuration.');
+        }
+        
         // Create the user
         const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        if (browser && import.meta.env.DEV) {
+          console.log('User created successfully, updating profile');
+        }
         
         // Update profile with display name
         await updateProfile(userCredential.user, { displayName });

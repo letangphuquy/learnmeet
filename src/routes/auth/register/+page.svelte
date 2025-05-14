@@ -47,10 +47,18 @@
     loading = true;
     error = '';
     debugInfo = '';
-    
-    try {
+      try {
       if (browser && import.meta.env.DEV) {
         console.log('Attempting to register with:', { email, displayName, role });
+        
+        // Debug Firebase configuration in the browser console
+        console.log('Firebase config check (from registration page)');
+        import { PUBLIC_FIREBASE_API_KEY, PUBLIC_FIREBASE_AUTH_DOMAIN, PUBLIC_FIREBASE_PROJECT_ID } from '$env/static/public';
+        console.log('Key config values available:', {
+          apiKey: PUBLIC_FIREBASE_API_KEY ? '✓ Present' : '✗ Missing',
+          authDomain: PUBLIC_FIREBASE_AUTH_DOMAIN ? '✓ Present' : '✗ Missing',
+          projectId: PUBLIC_FIREBASE_PROJECT_ID ? '✓ Present' : '✗ Missing'
+        });
       }
       
       const user = await authStore.register(email, password, displayName, role);
@@ -62,8 +70,11 @@
       error = getAuthErrorMessage(err);
       if (browser && import.meta.env.DEV) {
         console.error('Registration error:', err);
-        // Store debug info for display
-        debugInfo = `Error code: ${err.code || 'unknown'}, Full message: ${err.message || 'No message'}`;
+        // Store detailed debug info for display
+        debugInfo = `Error code: ${err.code || 'unknown'}, Full message: ${err.message || 'No message'}, Firebase initialized: ${typeof firebase !== 'undefined' ? 'Yes' : 'No'}`;
+        
+        // Log full error object for debugging
+        console.error('Full error object:', JSON.stringify(err));
       }
     } finally {
       loading = false;

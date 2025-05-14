@@ -82,9 +82,10 @@ export function getAuthErrorMessage(error: any): string {
     case 'auth/too-many-requests':
       return 'Too many sign-in attempts. Please try again later.';
     case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection.';
-    case 'auth/configuration-not-found':
-      return 'Firebase configuration error. Please make sure your .env file is set up correctly and the Firebase project is properly configured.';
+      return 'Network error. Please check your internet connection.';    case 'auth/configuration-not-found':
+      return 'Firebase project not found. Please check that your Firebase configuration is correct and the project exists.';
+    case 'auth/project-not-found':
+      return 'Firebase project not found. Verify the project ID in your .env file matches a valid Firebase project.';  
     case 'auth/internal-error':
       return 'An internal authentication error occurred. Please try again later.';
     case 'auth/operation-not-allowed':

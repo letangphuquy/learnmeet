@@ -1,11 +1,13 @@
 // Firebase configuration for LearnMeet
 // This file initializes Firebase services for authentication
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
 import { PUBLIC_FIREBASE_API_KEY, PUBLIC_FIREBASE_AUTH_DOMAIN, PUBLIC_FIREBASE_PROJECT_ID,
          PUBLIC_FIREBASE_STORAGE_BUCKET, PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
          PUBLIC_FIREBASE_APP_ID, PUBLIC_FIREBASE_MEASUREMENT_ID } from '$env/static/public';
 import { browser } from '$app/environment';
+import { validateFirebaseConfig, getFirebaseConfigReport } from './config-validator';
 
 // Firebase configuration using environment variables
 const firebaseConfig = {
@@ -17,6 +19,15 @@ const firebaseConfig = {
   appId: PUBLIC_FIREBASE_APP_ID,
   measurementId: PUBLIC_FIREBASE_MEASUREMENT_ID
 };
+
+// Validate configuration before initialization
+if (browser) {
+  const { valid, issues } = validateFirebaseConfig();
+  if (!valid) {
+    console.error('⚠️ Invalid Firebase configuration:', issues);
+    console.info(getFirebaseConfigReport());
+  }
+}
 
 // Debug output for configuration
 if (browser && import.meta.env.DEV) {
@@ -31,14 +42,37 @@ if (browser && import.meta.env.DEV) {
   });
 }
 
-// Initialize Firebase
-let app;
+// Initialize Firebase with proper error handling
+let app: FirebaseApp;
 try {
+  // Validate that we have minimal required config values
+  if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+    throw new Error('Missing required Firebase configuration values. Check your .env file.');
+  }
+
   // Check if Firebase app is already initialized to prevent duplicate apps
-  app = initializeApp(firebaseConfig);
-  if (browser) console.log('Firebase initialized successfully');
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    // Use existing app if available
+    app = existingApps[0];
+    if (browser) console.log('Using existing Firebase app');
+  } else {
+    // Initialize new app if no existing app is found
+    app = initializeApp(firebaseConfig);
+    if (browser) console.log('Firebase initialized successfully with new app');
+  }
 } catch (error) {
-  if (browser) console.error('Error initializing Firebase:', error);
+  if (browser) {
+    console.error('Error initializing Firebase:', error);
+    console.error('Firebase Config (redacted):', {
+      apiKey: firebaseConfig.apiKey ? '✓ Set' : '✗ Missing',
+      authDomain: firebaseConfig.authDomain ? '✓ Set' : '✗ Missing',
+      projectId: firebaseConfig.projectId ? '✓ Set' : '✗ Missing',
+      storageBucket: firebaseConfig.storageBucket ? '✓ Set' : '✗ Missing',
+      messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Set' : '✗ Missing',
+      appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing',
+    });
+  }
   throw error;
 }
 
