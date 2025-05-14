@@ -3,6 +3,9 @@
   import { goto } from '$app/navigation';
   import { authStore, UserRole } from '$lib/stores/authStore';
   import Button from '$lib/components/ui/Button.svelte';
+  import { getAuthErrorMessage } from '$lib/firebase/auth-utils';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   
   let email = '';
   let password = '';
@@ -11,6 +14,18 @@
   let role = UserRole.Student;
   let loading = false;
   let error = '';
+  let debugInfo = '';
+  
+  onMount(() => {
+    // Check if user is already signed in
+    const unsubscribe = authStore.subscribe((state) => {
+      if (!state.loading && state.isAuthenticated) {
+        goto('/dashboard');
+      }
+    });
+    
+    return unsubscribe;
+  });
   
   async function handleRegistration() {
     // Basic validation
@@ -31,15 +46,25 @@
     
     loading = true;
     error = '';
+    debugInfo = '';
     
     try {
+      if (browser && import.meta.env.DEV) {
+        console.log('Attempting to register with:', { email, displayName, role });
+      }
+      
       const user = await authStore.register(email, password, displayName, role);
       if (user) {
         // Navigate to a verification page or dashboard
         goto('/auth/verify-email');
       }
     } catch (err: any) {
-      error = err.message || 'Failed to register';
+      error = getAuthErrorMessage(err);
+      if (browser && import.meta.env.DEV) {
+        console.error('Registration error:', err);
+        // Store debug info for display
+        debugInfo = `Error code: ${err.code || 'unknown'}, Full message: ${err.message || 'No message'}`;
+      }
     } finally {
       loading = false;
     }
@@ -59,10 +84,12 @@
       </p>
     </div>
     
-    <form class="mt-8 space-y-6" on:submit|preventDefault={handleRegistration}>
-      {#if error}
+    <form class="mt-8 space-y-6" on:submit|preventDefault={handleRegistration}>      {#if error}
         <div class="p-3 bg-red-100 border border-red-200 text-red-700 rounded">
-          {error}
+          <p class="font-medium">{error}</p>
+          {#if debugInfo && import.meta.env.DEV}
+            <p class="text-xs mt-2 font-mono overflow-auto">{debugInfo}</p>
+          {/if}
         </div>
       {/if}
       
