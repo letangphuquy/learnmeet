@@ -17,6 +17,13 @@
   let success = false;
   let authState: any = {};
   
+  let customApiKey = '';
+  let customAuthDomain = '';
+  let customProjectId = '';
+  let customAppId = '';
+  let customTestResult = '';
+  let customTestLoading = false;
+  
   // Get environment variables for display
   let envVars = '';
   if (browser) {
@@ -134,6 +141,51 @@ App ID: ${PUBLIC_FIREBASE_APP_ID ? '✓ ' + PUBLIC_FIREBASE_APP_ID.substring(0, 
       loading = false;
     }
   }
+  
+  async function testCustomConfig() {
+    customTestLoading = true;
+    customTestResult = '';
+    
+    try {
+      // Only include non-empty fields
+      const customConfig: any = {};
+      if (customApiKey) customConfig.apiKey = customApiKey;
+      if (customAuthDomain) customConfig.authDomain = customAuthDomain;
+      if (customProjectId) customConfig.projectId = customProjectId;
+      if (customAppId) customConfig.appId = customAppId;
+      
+      // If any field is provided, test it
+      if (Object.keys(customConfig).length > 0) {
+        // Import directly to avoid bundling issues
+        import { initializeApp, deleteApp } from 'firebase/app';
+        
+        // Create a unique name for the test app
+        const testAppName = `test-app-${Date.now()}`;
+        
+        // Try to initialize with this custom config
+        const testApp = initializeApp({
+          ...customConfig,
+          // Use existing values for any missing fields
+          apiKey: customConfig.apiKey || PUBLIC_FIREBASE_API_KEY,
+          authDomain: customConfig.authDomain || PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: customConfig.projectId || PUBLIC_FIREBASE_PROJECT_ID,
+          appId: customConfig.appId || PUBLIC_FIREBASE_APP_ID
+        }, testAppName);
+        
+        customTestResult = '✅ Firebase app initialized successfully with custom config!';
+        
+        // Clean up
+        await deleteApp(testApp);
+        customTestResult += '\n✅ Test app deleted successfully';
+      } else {
+        customTestResult = 'Please provide at least one custom configuration value to test';
+      }
+    } catch (error: any) {
+      customTestResult = `❌ Error: ${error.message}\n\nThis indicates the custom configuration didn't work. The "auth/configuration-not-found" error is likely to occur with this configuration.`;
+    } finally {
+      customTestLoading = false;
+    }
+  }
 </script>
 
 <main class="min-h-screen bg-gray-50 py-12 px-4">
@@ -203,12 +255,76 @@ App ID: ${PUBLIC_FIREBASE_APP_ID ? '✓ ' + PUBLIC_FIREBASE_APP_ID.substring(0, 
     {/if}
     
     {#if testResult}
-      <div class="bg-white shadow rounded-lg p-6">
+      <div class="bg-white shadow rounded-lg p-6 mb-6">
         <h2 class="text-xl font-bold mb-2">Auth Test Result</h2>
         <div class="p-4 bg-blue-100 rounded">
           <pre class="whitespace-pre-wrap font-mono text-sm">{testResult}</pre>
         </div>
       </div>
     {/if}
+    
+    <!-- New section for testing custom Firebase config -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">Test Custom Firebase Configuration</h2>
+      <p class="mb-4 text-gray-600">
+        Use this tool to test different Firebase configuration values to resolve the "auth/configuration-not-found" error.
+      </p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+          <input
+            type="text"
+            bind:value={customApiKey}
+            placeholder="AIza..."
+            class="w-full p-2 border rounded"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Auth Domain</label>
+          <input
+            type="text"
+            bind:value={customAuthDomain}
+            placeholder="project-id.firebaseapp.com"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Project ID</label>
+          <input
+            type="text"
+            bind:value={customProjectId}
+            placeholder="project-id"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">App ID</label>
+          <input
+            type="text"
+            bind:value={customAppId}
+            placeholder="1:123456789:web:abcdef"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+      </div>
+      
+      <button 
+        on:click={testCustomConfig}
+        disabled={customTestLoading}
+        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+      >
+        {customTestLoading ? 'Testing...' : 'Test Configuration'}
+      </button>
+      
+      {#if customTestResult}
+        <div class="mt-4 p-4 bg-gray-100 rounded">
+          <pre class="whitespace-pre-wrap font-mono text-sm">{customTestResult}</pre>
+        </div>
+      {/if}
+    </div>
   </div>
 </main>
