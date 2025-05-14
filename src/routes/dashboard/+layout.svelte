@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/stores/authStore';
+  import Header from '$lib/components/Header.svelte';
   
   let isAuthenticated = false;
   let loading = true;
@@ -27,5 +28,10 @@
     <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
   </div>
 {:else if isAuthenticated}
-  <slot></slot>
+  <div class="min-h-screen flex flex-col bg-gray-50">
+    <Header sticky={true} />
+    <main class="flex-1 container mx-auto px-4 py-8">
+      <slot></slot>
+    </main>
+  </div>
 {/if}
