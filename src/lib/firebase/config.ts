@@ -50,6 +50,16 @@ try {
     throw new Error('Missing required Firebase configuration values. Check your .env file.');
   }
 
+  // Check API key format to prevent auth/configuration-not-found error
+  if (!firebaseConfig.apiKey.startsWith('AIza')) {
+    throw new Error('Invalid Firebase API key format. API keys should start with "AIza".');
+  }
+
+  // Validate auth domain format
+  if (!firebaseConfig.authDomain.includes('.firebaseapp.com')) {
+    throw new Error('Invalid Firebase Auth Domain format. Should end with .firebaseapp.com');
+  }
+
   // Check if Firebase app is already initialized to prevent duplicate apps
   const existingApps = getApps();
   if (existingApps.length > 0) {
@@ -61,17 +71,26 @@ try {
     app = initializeApp(firebaseConfig);
     if (browser) console.log('Firebase initialized successfully with new app');
   }
-} catch (error) {
+} catch (error: any) {
   if (browser) {
     console.error('Error initializing Firebase:', error);
+    
+    // Special handling for API key issues which often cause configuration-not-found
+    if (error.message.includes('API key')) {
+      console.error('❌ API Key validation failed. This is likely causing the "auth/configuration-not-found" error.');
+    }
+    
     console.error('Firebase Config (redacted):', {
-      apiKey: firebaseConfig.apiKey ? '✓ Set' : '✗ Missing',
+      apiKey: firebaseConfig.apiKey ? '✓ Set (starts with: ' + firebaseConfig.apiKey.substring(0, 4) + '...)' : '✗ Missing',
       authDomain: firebaseConfig.authDomain ? '✓ Set' : '✗ Missing',
       projectId: firebaseConfig.projectId ? '✓ Set' : '✗ Missing',
       storageBucket: firebaseConfig.storageBucket ? '✓ Set' : '✗ Missing',
       messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Set' : '✗ Missing',
       appId: firebaseConfig.appId ? '✓ Set' : '✗ Missing',
     });
+    
+    // Try to provide a helpful error message
+    error.code = error.code || (error.message.includes('API key') ? 'auth/invalid-api-key' : 'auth/initialization-error');
   }
   throw error;
 }

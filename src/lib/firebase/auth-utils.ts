@@ -80,12 +80,14 @@ export function getAuthErrorMessage(error: any): string {
     case 'auth/user-disabled':
       return 'This account has been disabled. Please contact support.';
     case 'auth/too-many-requests':
-      return 'Too many sign-in attempts. Please try again later.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection.';    case 'auth/configuration-not-found':
-      return 'Firebase project not found. Please check that your Firebase configuration is correct and the project exists.';
+      return 'Too many sign-in attempts. Please try again later.';    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection.';
+    case 'auth/configuration-not-found':
+      return 'Firebase project configuration error. This may be due to an incorrect API key, mismatched project ID, or missing authentication configuration in the Firebase console. Please check your .env file and Firebase project settings.';
     case 'auth/project-not-found':
-      return 'Firebase project not found. Verify the project ID in your .env file matches a valid Firebase project.';  
+      return 'Firebase project not found. Verify the project ID in your .env file matches a valid Firebase project.';
+    case 'auth/invalid-api-key':
+      return 'Invalid Firebase API key. Check that your API key starts with "AIza" and is correctly set in your .env file.';
     case 'auth/internal-error':
       return 'An internal authentication error occurred. Please try again later.';
     case 'auth/operation-not-allowed':
