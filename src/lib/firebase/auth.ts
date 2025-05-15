@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 
 // User interface
 export interface User {
@@ -48,18 +49,41 @@ const initialState: AuthState = {
 // Create the auth store
 function createAuthStore() {
   const { subscribe, set, update } = writable<AuthState>(initialState);
-
+  // Store user roles in memory until we implement proper role storage
+  const userRoles: Record<string, UserRole> = {};
+  
   // Transform Firebase User to our User model
-  function transformUser(firebaseUser: FirebaseUser): User {
-    // Get user role from custom claims or default to Student
-    // For now, determine role by email domain as a simple example
-    // In a real app, this would come from custom claims or a database
-    const isTeacher = firebaseUser.email?.includes('teacher') || false;
-    const isAdmin = firebaseUser.email?.includes('admin') || false;
+  function transformUser(firebaseUser: FirebaseUser, specifiedRole?: UserRole): User {
+    // Get user role from various sources with precedence:
+    // 1. Specified role parameter (highest priority)
+    // 2. Previously stored role for this user
+    // 3. Email-based determination (lowest priority)
     
-    let role = UserRole.Student;
-    if (isTeacher) role = UserRole.Teacher;
-    if (isAdmin) role = UserRole.Admin;
+    let role: UserRole;
+    
+    if (specifiedRole) {
+      // If a role is explicitly specified, use it and store it
+      role = specifiedRole;
+      if (firebaseUser.uid) {
+        userRoles[firebaseUser.uid] = role;
+      }
+    } else if (firebaseUser.uid && userRoles[firebaseUser.uid]) {
+      // If we've previously stored a role for this user, use it
+      role = userRoles[firebaseUser.uid];
+    } else {
+      // Fallback to email-based determination
+      const isTeacher = firebaseUser.email?.includes('teacher') || false;
+      const isAdmin = firebaseUser.email?.includes('admin') || false;
+      
+      role = UserRole.Student; // Default role
+      if (isTeacher) role = UserRole.Teacher;
+      if (isAdmin) role = UserRole.Admin;
+      
+      // Store this determined role
+      if (firebaseUser.uid) {
+        userRoles[firebaseUser.uid] = role;
+      }
+    }
 
     return {
       uid: firebaseUser.uid,
@@ -70,35 +94,55 @@ function createAuthStore() {
       role
     };
   }
-
-  // Initialize listener for authentication state changes
-  onAuthStateChanged(auth, (firebaseUser) => {
-    if (firebaseUser) {
-      const user = transformUser(firebaseUser);
+  // Initialize listener for authentication state changes with error handling
+  try {
+    onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const user = transformUser(firebaseUser);
+        update(state => ({
+          ...state,
+          user,
+          isAuthenticated: true,
+          loading: false,
+          error: null // Clear any previous errors
+        }));
+      } else {
+        update(state => ({
+          ...state,
+          user: null,
+          isAuthenticated: false,
+          loading: false,
+          error: null // Clear any previous errors
+        }));
+      }
+    }, (error) => {
+      // This error handler catches auth state changes errors
+      console.error('Auth state change error:', error);
       update(state => ({
         ...state,
-        user,
-        isAuthenticated: true,
-        loading: false
+        loading: false,
+        error: error.message || 'Authentication service failed'
       }));
-    } else {
-      update(state => ({
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        loading: false
-      }));
-    }
-  });
+    });
+  } catch (initError) {
+    console.error('Failed to initialize auth listener:', initError);
+    update(state => ({
+      ...state,
+      loading: false,
+      error: 'Failed to initialize authentication'
+    }));
+  }
   
   return {
     subscribe,
-    
-    // Sign in a user with email and password
-    signIn: async (email: string, password: string): Promise<User | null> => {
+      // Sign in a user with email and password
+    signIn: async (email: string, password: string, rememberMe: boolean = false): Promise<User | null> => {
       update(state => ({ ...state, loading: true, error: null }));
       
       try {
+        // Set persistence based on remember me checkbox
+        // This is handled separately from the signIn to avoid unnecessary imports in this file
+        
         const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = transformUser(userCredential.user);
         
@@ -131,23 +175,38 @@ function createAuthStore() {
         throw new Error(errorMessage);
       }
     },
-    
-    // Register a new user
+      // Register a new user
     register: async (email: string, password: string, displayName: string, role: UserRole = UserRole.Student): Promise<User | null> => {
       update(state => ({ ...state, loading: true, error: null }));
       
       try {
+        if (browser && import.meta.env.DEV) {
+          console.log('Starting user registration process for:', email);
+        }
+        
+        // Validate auth object exists
+        if (!auth) {
+          throw new Error('Firebase auth is not initialized. Check your configuration.');
+        }
+        
         // Create the user
         const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        if (browser && import.meta.env.DEV) {
+          console.log('User created successfully, updating profile');
+        }
         
         // Update profile with display name
         await updateProfile(userCredential.user, { displayName });
         
         // Send email verification
         await sendEmailVerification(userCredential.user);
+          // Transform and return user, passing the specified role
+        const user = transformUser(userCredential.user, role);
         
-        // Transform and return user
-        const user = transformUser(userCredential.user);
+        if (browser && import.meta.env.DEV) {
+          console.log(`User registered with role: ${role}`);
+        }
         
         return user;
       } catch (error: any) {

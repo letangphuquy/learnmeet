@@ -31,10 +31,18 @@
   }
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+<main class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+    <div class="flex items-center justify-between mb-4">
+      <a href="/" class="flex items-center text-primary-600 hover:text-primary-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+        </svg>
+        <span>Home</span>
+      </a>
+    </div>
+  
     <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <h2 class="mt-2 text-center text-3xl font-extrabold text-gray-900">
         Reset your password
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">

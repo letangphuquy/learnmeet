@@ -1,6 +1,20 @@
 // filepath: e:\Computer Science\Projects\OnlineCourse\learnmeet\src\lib\stores\authStore.ts
+// Import and initialize Firebase auth first to ensure proper setup
+import { auth } from '../firebase/config';
+import { browser } from '$app/environment';
+
 // Re-export the authentication functionality from our Firebase implementation
 export { authStore, type User, UserRole, isTeacher, isAdmin, hasRole } from '../firebase/auth';
+
+// Add a check to ensure Firebase is properly initialized
+if (browser) {
+  // Simple check to make sure auth object exists
+  if (!auth) {
+    console.error('Firebase auth was not properly initialized');
+  } else {
+    console.log('Firebase auth was successfully initialized in authStore');
+  }
+}
 
 /* Original implementation kept as reference but commented out
 import { writable } from 'svelte/store';

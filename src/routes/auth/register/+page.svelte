@@ -1,8 +1,15 @@
 <!-- Registration page for LearnMeet -->
-<script lang="ts">
-  import { goto } from '$app/navigation';
+<script lang="ts">  import { goto } from '$app/navigation';
   import { authStore, UserRole } from '$lib/stores/authStore';
   import Button from '$lib/components/ui/Button.svelte';
+  import { getAuthErrorMessage } from '$lib/firebase/auth-utils';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+  import { 
+    PUBLIC_FIREBASE_API_KEY, 
+    PUBLIC_FIREBASE_AUTH_DOMAIN, 
+    PUBLIC_FIREBASE_PROJECT_ID 
+  } from '$env/static/public';
   
   let email = '';
   let password = '';
@@ -11,6 +18,18 @@
   let role = UserRole.Student;
   let loading = false;
   let error = '';
+  let debugInfo = '';
+  
+  onMount(() => {
+    // Check if user is already signed in
+    const unsubscribe = authStore.subscribe((state) => {
+      if (!state.loading && state.isAuthenticated) {
+        goto('/dashboard');
+      }
+    });
+    
+    return unsubscribe;
+  });
   
   async function handleRegistration() {
     // Basic validation
@@ -31,25 +50,52 @@
     
     loading = true;
     error = '';
-    
-    try {
+    debugInfo = '';
+      try {
+      if (browser && import.meta.env.DEV) {
+        console.log('Attempting to register with:', { email, displayName, role });
+          // Debug Firebase configuration in the browser console
+        console.log('Firebase config check (from registration page)');
+        console.log('Key config values available:', {
+          apiKey: PUBLIC_FIREBASE_API_KEY ? '✓ Present' : '✗ Missing',
+          authDomain: PUBLIC_FIREBASE_AUTH_DOMAIN ? '✓ Present' : '✗ Missing',
+          projectId: PUBLIC_FIREBASE_PROJECT_ID ? '✓ Present' : '✗ Missing'
+        });
+      }
+      
       const user = await authStore.register(email, password, displayName, role);
       if (user) {
         // Navigate to a verification page or dashboard
         goto('/auth/verify-email');
       }
     } catch (err: any) {
-      error = err.message || 'Failed to register';
+      error = getAuthErrorMessage(err);
+      if (browser && import.meta.env.DEV) {
+        console.error('Registration error:', err);
+        // Store detailed debug info for display
+        debugInfo = `Error code: ${err.code || 'unknown'}, Full message: ${err.message || 'No message'}, Firebase initialized: ${typeof firebase !== 'undefined' ? 'Yes' : 'No'}`;
+        
+        // Log full error object for debugging
+        console.error('Full error object:', JSON.stringify(err));
+      }
     } finally {
       loading = false;
     }
   }
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+<main class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+    <div class="flex items-center justify-between mb-4">
+      <a href="/" class="flex items-center text-primary-600 hover:text-primary-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+        </svg>
+        <span>Home</span>
+      </a>
+    </div>
+  
     <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <h2 class="mt-2 text-center text-3xl font-extrabold text-gray-900">
         Create your account
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
@@ -59,10 +105,12 @@
       </p>
     </div>
     
-    <form class="mt-8 space-y-6" on:submit|preventDefault={handleRegistration}>
-      {#if error}
+    <form class="mt-8 space-y-6" on:submit|preventDefault={handleRegistration}>      {#if error}
         <div class="p-3 bg-red-100 border border-red-200 text-red-700 rounded">
-          {error}
+          <p class="font-medium">{error}</p>
+          {#if debugInfo && import.meta.env.DEV}
+            <p class="text-xs mt-2 font-mono overflow-auto">{debugInfo}</p>
+          {/if}
         </div>
       {/if}
       
